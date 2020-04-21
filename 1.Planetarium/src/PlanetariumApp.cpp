@@ -17,29 +17,28 @@ class AstronomicalObject {
 
 public:
 
-	float orbit = 0.f;				//Running Variable for orbit
-	float orbitRotationSpeed = 0.f; //Speed of the orbit Rotation
-	vec3 orbitRotationVector;		//Rotation Vector of this Objects orbit
-	vec3 orbitOffset;				//Relative Offset for this Object
+	float orbit = 0.f;				// Running Variable for orbit
+	float orbitRotationSpeed = 0.f; // Speed of the orbit Rotation
+	vec3 orbitRotationVector;		// Rotation Vector of this Objects orbit
+	vec3 orbitOffset;				// Relative Offset for this Object
 
-	float axisRotation = 0.f;		//Variable for Rotation around own axis
-	float axisRotationSpeed = 0.f;	//Speed of rotation
-	vec3 axisRotationVector;		//Axis to rotate around
+	float axisRotation = 0.f;		// Variable for Rotation around own axis
+	float axisRotationSpeed = 0.f;	// Speed of rotation
+	vec3 axisRotationVector;		// Axis to rotate around
 
-	float relativeScale = 1.f;		//Relative Scale of this object
-	float custom = 0.f;				//Use for special values
+	float relativeScale = 1.f;		// Relative Scale of this object
+	float custom = 0.f;				// Use for special values
 
-	cinder::Color color;			//Color
+	cinder::Color color;			// Color
 
-	gl::TextureRef textureRef;		//Reference to the Texture this object uses
-	gl::GlslProgRef shaderRef;		//Reference to the shader this object uses
-	gl::BatchRef batchRef;			//Reference to the batch this geometry uses
+	gl::TextureRef textureRef;		// Reference to the Texture this object uses
+	gl::GlslProgRef shaderRef;		// Reference to the shader this object uses
+	gl::BatchRef batchRef;			// Reference to the batch this geometry uses
     
-    Sphere objectsBound;
-    vec3 position;
+    Sphere objectsBound;            // Sphere that bounds the object for picking purposes
+    vec3 position;                  // Position of the object
     
-    int direction = 1;
-    bool intersected = false;
+    int direction = 1;              // Direction of the axis rotation of the object
 
 	void drawTexture() {
 		textureRef->bind();
@@ -56,7 +55,7 @@ public:
     void setBounds (vec3 center, float radius = 0.f);
     bool testIntersection (Ray ray, float *minIntersection);
     void changeDirection ();
-    void update ();
+    void update (float deltaTime);
 };
 
 void AstronomicalObject::setupRotation(vec3 vector, float speed) {
@@ -86,9 +85,7 @@ bool AstronomicalObject::testIntersection(Ray ray, float *minIntersection) {
     float maxIntersection;
     
     objectsBound.setCenter(position);
-    intersected = objectsBound.intersect(ray, minIntersection, &maxIntersection);
-    
-    return intersected;
+    return objectsBound.intersect(ray, minIntersection, &maxIntersection);
 }
 
 void AstronomicalObject::changeDirection() {
@@ -96,8 +93,8 @@ void AstronomicalObject::changeDirection() {
 }
 
 
-void AstronomicalObject::update() {
-    axisRotation += axisRotationSpeed * direction;
+void AstronomicalObject::update(float deltaTime) {
+    axisRotation += axisRotationSpeed * deltaTime * direction;
     orbit += orbitRotationSpeed;
 }
 
@@ -145,11 +142,11 @@ double PlanetariumApp::getZCamera () {
 
 void PlanetariumApp::setup()
 {
-	//Camera Setup
+	// Camera Setup
 	cam.setEyePoint(vec3(0, 8, -8));
     cam.lookAt(vec3(0, 0, 0));
 
-	//Load Shaders
+	// Load Shaders
 	auto textureShader = gl::ShaderDef().texture().lambert();
 	auto colorShader = gl::ShaderDef().color();
 	auto texShaderRef = gl::getStockShader(textureShader);
@@ -159,27 +156,27 @@ void PlanetariumApp::setup()
 	astroObjects.resize(EobjFinal);
     
     // Setup Sun
-    astroObjects[sun].setupRotation(vec3(0, -1, 0), 0.01f);
+    astroObjects[sun].setupRotation(vec3(0, -1, 0), 1.f);
     astroObjects[sun].setupScale(1.5f);
     astroObjects[sun].setBounds(vec3(0, 0, 0), 1.5f);
     
     // Setup Jupiter
-    astroObjects[jupiter].setupRotation(vec3(0, -1, 0), 0.03f);
-    astroObjects[jupiter].setupOrbit(vec3(0, 1, 0), 0.01f, vec3(4, 0, 4));
+    astroObjects[jupiter].setupRotation(vec3(0, -1, 0), 1.f);
+    astroObjects[jupiter].setupOrbit(vec3(0, 1, 0), 0.005f, vec3(4, 0, 4));
     astroObjects[jupiter].setupScale(2.f);
     astroObjects[jupiter].setBounds(vec3(0, 0, 0), 2.f);
     
     // Setup earth
-    astroObjects[earth].setupRotation(vec3(0, -1, 0), 0.03f);
-    astroObjects[earth].setupOrbit(vec3(0, 1, 0), 0.01f, vec3(2, 0, 2));
+    astroObjects[earth].setupRotation(vec3(0, -1, 0), 1.f);
+    astroObjects[earth].setupOrbit(vec3(0, 1, 0), -0.005f, vec3(2, 0, 2));
     astroObjects[earth].setupScale(0.4f);
     astroObjects[earth].setBounds(vec3(0, 0, 0), 0.6f);
     
     // Setup moon
-    astroObjects[moon].setupRotation(vec3(0, -1, 0), 0.03f);
-    astroObjects[moon].setupOrbit(vec3(0, 1, 0), 0.01f, vec3(1.5, 0, 1.5));
-    astroObjects[moon].setupScale(0.4f);
-    astroObjects[moon].setBounds(vec3(0, 0, 0), 0.4f);
+    astroObjects[moon].setupRotation(vec3(0, -1, 0), 1.f);
+    astroObjects[moon].setupOrbit(vec3(0, 1, 0), 0.01f, vec3(0.5, 0, 0.5));
+    astroObjects[moon].setupScale(0.2f);
+    astroObjects[moon].setBounds(vec3(0, 0, 0), 0.2f);
 
 	// Setup geometry
 	auto sphere = geom::Sphere().subdivisions(40);
@@ -205,7 +202,7 @@ void PlanetariumApp::setup()
 	interfaceRef->addParam("Sun Rotation", &astroObjects[sun].axisRotation ).step(0.01f).max(0.0f).min((float)(-2.0 * M_PI));
     interfaceRef->addParam("Animate", &animate);
     interfaceRef->addParam("Earth Distance", &astroObjects[earth].orbitOffset);
-    interfaceRef->addParam("Moon Size", &astroObjects[moon].relativeScale).step(0.01f).max(1.f).min(0.5f);
+    interfaceRef->addParam("Moon Size", &astroObjects[moon].relativeScale).step(0.01f).max(0.3f).min(0.1f);
     interfaceRef->addSeparator();
     interfaceRef->addParam("Camera Distance", &camDistanceSun).step(0.05f).max(15.f).min(0.5f);
     interfaceRef->addParam("Look at Moon", &lookAtMoon);
@@ -228,7 +225,7 @@ void PlanetariumApp::mouseDown( MouseEvent event )
     
     float min = std::numeric_limits<float>::max();
     float tmp_min = std::numeric_limits<float>::max();
-    Eobj astroObj;
+    Eobj astroObj = EobjFinal;
     
     if (astroObjects[sun].testIntersection(ray, &min)) {
         astroObj = sun;
@@ -246,19 +243,21 @@ void PlanetariumApp::mouseDown( MouseEvent event )
         astroObj = moon;
     }
     
-    astroObjects[astroObj].changeDirection();
+    if (astroObj != EobjFinal){
+        astroObjects[astroObj].changeDirection();
+    }
 }
 
-//This function is called every frame
+// This function is called every frame
 void PlanetariumApp::update()
 {
-	deltaTime = getElapsedSeconds() - lastTime;
+	deltaTime = (getElapsedSeconds() - lastTime);
     
 	if (animate) {
-        astroObjects[sun].update();
-        astroObjects[jupiter].update();
-        astroObjects[earth].update();
-        astroObjects[moon].update();
+        astroObjects[sun].update(deltaTime);
+        astroObjects[jupiter].update(deltaTime);
+        astroObjects[earth].update(deltaTime);
+        astroObjects[moon].update(deltaTime);
 	}
     
 	lastTime = getElapsedSeconds();
@@ -329,8 +328,8 @@ void PlanetariumApp::draw()
     gl::pushModelMatrix();
         gl::rotate(astroObjects[earth].orbit, astroObjects[earth].orbitRotationVector);
         gl::translate(astroObjects[earth].orbitOffset);
-        gl::scale(astroObjects[earth].relativeScale, astroObjects[earth].relativeScale, astroObjects[earth].relativeScale);
         gl::pushModelMatrix();
+            gl::scale(astroObjects[earth].relativeScale, astroObjects[earth].relativeScale, astroObjects[earth].relativeScale);
             gl::rotate(astroObjects[earth].axisRotation, astroObjects[earth].axisRotationVector);
             astroObjects[earth].drawTexture();
             astroObjects[earth].position = getCurrPosition();
