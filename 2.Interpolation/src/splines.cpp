@@ -4,17 +4,24 @@
 
 std::vector<vec3> PointInterp::GetInterpolatedLine(float interval)
 {
-	//todo TASK1 - begin
-	/* This function receives an interval at which the function should be sampled.
-	(one dimensional) Example: if there are 3 control points at x=0, x=2 and x=3, with an interval of 0.1 the result would be{0, 0.2, 0.4, 0.6,0.8, 1, ..., 2, 2.1, 2.2,...3)
-	The vector "points" holds all the control points. It is a std::vector<Point>, see splines.h to see all member variables of the Point class.
-	In case you are not familiar with std::vector see http://en.cppreference.com/w/cpp/container/vector
-	*/
-	std::vector<vec3> interpList; //The vector you should fill with the interpolated positions
-								  //Your code here
+	// This function receives an interval at which the function should be sampled.
+	std::vector<vec3> interpList; //The vector with the interpolated positions
+    
+    for (int i = 0; i < points.size() - 1; i++){
+        RedefinedPoint P0 = points.at(i);
+        RedefinedPoint P1 = points.at(i + 1);
+                
+        for (float u = 0; u < 1; u = u + interval) {
+            vec3 interpolatedPos = (1 - u) * P0.pos + u * P1.pos;
+            interpList.push_back(interpolatedPos);
+        }
+        
+        interpList.push_back(P1.pos);
+        
+    }
 
+    
 	return interpList; //A copy of the vector is returned
-					   //todo TASK1 - end
 }
 
 std::vector<vec3> PointInterp::GetHermiteSpline(float interval)
@@ -27,8 +34,32 @@ std::vector<vec3> PointInterp::GetHermiteSpline(float interval)
 	*/
 	std::vector<vec3> interpList;  //The vector you should fill with the interpolated positions
 								   // Your code
+    
+    for (int i = 0; i < points.size() - 1; i++){
+        RedefinedPoint P0 = points.at(i);
+        RedefinedPoint P1 = points.at(i + 1);
+    
+        for (float u = 0; u <= 1; u = u + interval) {
+            float u3 = u * u * u;
+            float u2 = u * u;
+            
+            float eq1 = 2 * u3 - 3 * u2 + 1;
+            float eq2 = -2 * u3 + 3 * u2;
+            float eq3 = u3 - 2 * u2 + u;
+            float eq4 = u3 - u2;
+            
+            float x = eq1 * P0.pos.x + eq2 * P1.pos.x + eq3 * P0.hermiteTangent.x + eq4 * P1.hermiteTangent.x ;
+            float y = eq1 * P0.pos.y + eq2 * P1.pos.y + eq3 * P0.hermiteTangent.y + eq4 * P1.hermiteTangent.y ;
+            float z = eq1 * P0.pos.z + eq2 * P1.pos.z + eq3 * P0.hermiteTangent.z + eq4 * P1.hermiteTangent.z ;
+            
+            interpList.push_back(vec3(x, y, z));
+        }
+        
+        interpList.push_back(P1.pos);
+    }
+    
+    
 	return interpList; //Returns a copy of the vector
-					   //todo TASK2 - end
 }
 
 std::vector<vec3> PointInterp::GetParabolaInterpSpline(float interval)
@@ -38,6 +69,46 @@ std::vector<vec3> PointInterp::GetParabolaInterpSpline(float interval)
 	/* As in the previous Task, except you should implement Parabola interpolation. See the Book on how to implement this.
 	*/
 	std::vector<vec3> list;
+    
+    for (int i = 0; i < points.size() - 1; i++){
+        RedefinedPoint P0;
+        RedefinedPoint P1 = points.at(i);
+        RedefinedPoint P2 = points.at(i + 1);
+        RedefinedPoint P3;
+        
+        if (i == 0)
+            P0 = points.at(i);
+        else
+            P0 = points.at(i - 1);
+        
+        if (i == points.size() - 2)
+            P3 = points.at(i + 1);
+        else
+            P3 = points.at(i + 2);
+        
+    
+       
+        for (float u = 0; u <= 1; u = u + interval) {
+            float u3 = u * u * u;
+            float u2 = u * u;
+
+            float eq1 = 0.5 * (-1 * u3 + 2 * u2 - u);
+            float eq2 = 0.5 * (3 * u3 - 5 * u2 + 2);
+            float eq3 = 0.5 * (-3 * u3 + 4 * u2 + u);
+            float eq4 = 0.5 * (u3 - u2);
+
+            float x = eq1 * P0.pos.x + eq2 * P1.pos.x + eq3 * P2.pos.x + eq4 * P3.pos.x ;
+            float y = eq1 * P0.pos.y + eq2 * P1.pos.y + eq3 * P2.pos.y + eq4 * P3.pos.y ;
+            float z = eq1 * P0.pos.z + eq2 * P1.pos.z + eq3 * P2.pos.z + eq4 * P3.pos.z ;
+
+            list.push_back(vec3(x, y, z));
+            
+        }
+           
+        list.push_back(P2.pos);
+            
+    }
+        
 	// Your code
 	return list; //Returns a copy of the vector
 				 //todo TASK3 - end
@@ -51,8 +122,35 @@ std::vector<vec3> PointInterp::GetBezierInterpSpline(float interval)
 	*/
 	std::vector<vec3> interpList; //The std::vector holding the interpolated positions
 								  // Your code
+    
+    for (int i = 0; i < points.size() - 1; i++){
+        vec3 P0 = points.at(i).pos;
+        vec3 P1 = points.at(i).pos + points.at(i).bezierTangentF;
+        vec3 P2 = points.at(i + 1).pos + points.at(i + 1).bezierTangentB;
+        vec3 P3 = points.at(i + 1).pos;
+       
+        for (float u = 0; u <= 1; u = u + interval) {
+            float u3 = u * u * u;
+            float u2 = u * u;
+
+            float eq1 = -u3 + 3 * u2 - 3 * u + 1;
+            float eq2 = 3 * u3 - 6 * u2 + 3 * u;
+            float eq3 = -3 * u3 + 3 * u2;
+            float eq4 = u3;
+
+            float x = eq1 * P0.x + eq2 * P1.x + eq3 * P2.x + eq4 * P3.x ;
+            float y = eq1 * P0.y + eq2 * P1.y + eq3 * P2.y + eq4 * P3.y ;
+            float z = eq1 * P0.z + eq2 * P1.z + eq3 * P2.z + eq4 * P3.z ;
+
+            interpList.push_back(vec3(x, y, z));
+            
+        }
+           
+        interpList.push_back(P3);
+            
+    }
+    
 	return interpList;
-	//todo TASK4 - end
 }
 
 glm::mat4 PointInterp::ConstructHermiteB(Point p1, Point p2)
@@ -308,6 +406,8 @@ void PointInterp::InsertPoint()
 }
 std::vector<vec3> PointInterp::GetActiveSpline(float interval)
 {
+    if (points.size() <= 1) return std::vector<vec3>();
+        
 	switch (currentInterpMode)
 	{
 	case(line):
